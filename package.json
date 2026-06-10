@@ -1,0 +1,121 @@
+{
+  "name": "gemini-cli-calmui",
+  "displayName": "CalmUI for Gemini CLI",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/samshennan/calmui-for-gemini-cli.git"
+  },
+  "description": "Gemini CLI chat interface for VS Code",
+  "version": "1.6.0",
+  "publisher": "veles",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "main": "./dist/extension.js",
+  "categories": [
+    "Other"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "calmui",
+          "title": "CalmUI",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "calmui": [
+        {
+          "id": "calmui.chatView",
+          "name": "CalmUI",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CalmUI",
+      "properties": {
+        "calmui.geminiPath": {
+          "type": "string",
+          "default": "gemini",
+          "description": "Absolute path to the gemini CLI binary. Leave as 'gemini' to resolve from PATH."
+        },
+        "calmui.useVertexAI": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run Gemini CLI against Vertex AI. When enabled, sets GOOGLE_GENAI_USE_VERTEXAI=true and strips GEMINI_API_KEY / GOOGLE_API_KEY from the spawn environment so inherited public API keys do not override Vertex auth."
+        },
+        "calmui.googleCloudProject": {
+          "type": "string",
+          "default": "",
+          "description": "Google Cloud project ID to use for Vertex AI. Leave empty to inherit GOOGLE_CLOUD_PROJECT from the environment or gcloud defaults."
+        },
+        "calmui.includeDirectories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Extra folders outside the workspace that Gemini CLI can read. Passed as --include-directories on every spawn. Use absolute paths (e.g. C:\\AI_LAB or /Users/you/shared)."
+        },
+        "calmui.useAcp": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use the Gemini CLI ACP transport for persistent sessions, image input, permission prompts, model discovery, and recovery. Disable only to fall back to legacy per-turn stream-json spawns."
+        },
+        "calmui.attachMcpServersToAcp": {
+          "type": "boolean",
+          "default": false,
+          "description": "Experimental. Attach configured MCP servers to Gemini ACP sessions. Leave disabled if session creation hangs or prompts time out."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "calmui.focusChat",
+        "title": "CalmUI: Focus Chat"
+      },
+      {
+        "command": "calmui.runDiagnostics",
+        "title": "CalmUI: Run Diagnostics"
+      },
+      {
+        "command": "calmui.openMemory",
+        "title": "CalmUI: Open Memory Studio"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "calmui.focusChat",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "build:dev": "node esbuild.mjs --dev",
+    "vscode:prepublish": "node esbuild.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/vscode": "^1.93.0",
+    "@vscode/vsce": "^3.9.0",
+    "esbuild": "^0.28.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.5"
+  },
+  "dependencies": {
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  }
+}
