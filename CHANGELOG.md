@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.1] - 2026-06-10
+
+### Fixed
+- Permission cards show human-readable buttons (Allow once, Always allow, Deny, Always deny) instead of raw protocol option ids
+- Permission request card padding and spacing
+- Warning and stall notices use stronger text contrast and more comfortable padding
+- Composer controls (permission select, pills, context meter, Send/Stop) share a 32px height rhythm so labels sit vertically centred
+
 ## [1.6.0] - 2026-06-10
 
 ### Changed - Calm UI redesign

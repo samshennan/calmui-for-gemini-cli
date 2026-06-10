@@ -106,7 +106,7 @@ npm run package
 Then install the generated file:
 
 ```bash
-code --install-extension gemini-cli-calmui-1.6.0.vsix
+code --install-extension gemini-cli-calmui-1.6.1.vsix
 ```
 
 Or install manually:
@@ -114,7 +114,7 @@ Or install manually:
 1. Open Extensions in VS Code or a compatible IDE.
 2. Open the `...` menu.
 3. Choose **Install from VSIX...**
-4. Select `gemini-cli-calmui-1.6.0.vsix`.
+4. Select `gemini-cli-calmui-1.6.1.vsix`.
 5. Reload the window.
 6. Open the CalmUI activity bar panel.
 
@@ -166,7 +166,8 @@ src/
   webview/                         React UI and view-model helpers
   memory/                          GEMINI.md Memory Studio helpers
 media/                             Icons and local helper scripts
-scripts/                           Gemini CLI wrapper script for Vertex AI machines
+scripts/                           Verification and Gemini wrapper scripts
+.planning/                         Internal planning and handover notes
 ```
 
 ## Current status
