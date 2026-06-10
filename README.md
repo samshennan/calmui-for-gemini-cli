@@ -4,6 +4,10 @@ by [Sam Shennan](https://www.velesproductions.com) ([LinkedIn](https://www.linke
 
 A calmer UI for using Gemini CLI inside VS Code and VS Code-based IDEs.
 
+<p align="center">
+  <img src="docs/hero-welcome.png" width="640" alt="CalmUI for Gemini CLI welcome screen">
+</p>
+
 CalmUI was developed for an internal, non-technical team. For most people the terminal is a black scary box. CalmUI makes Gemini CLI feel like a chatbot again — a familiar sidebar chat — while keeping all the under-the-hood powers of Gemini CLI: tool calls, file context, memory, checkpoints, and MCP.
 
 If you have working access to Gemini CLI, CalmUI gives you a sidebar chat interface that feels closer to Claude Code, Codex, or modern agent IDEs. You can prompt Gemini, stream replies, approve tool calls, attach context, inspect memory/tools, export conversations, and keep the work inside your editor instead of living in a terminal.
@@ -66,6 +70,20 @@ Google announced that Gemini CLI and Gemini Code Assist IDE extensions will stop
 - Diagnostics command for checking auth, CLI path, ACP readiness, and search/tool settings.
 
 Memory Studio, checkpoints, the MCP inspector, extensions, export, and diagnostics all live in the toolbar overflow menu rather than as persistent buttons.
+
+## What it looks like
+
+Advanced controls stay tucked behind one composer toggle, so model choice, search grounding, sketch input, and ACP session state are available without crowding the default chat.
+
+![CalmUI advanced composer controls](docs/advanced-controls.png)
+
+Permission modes are explicit and close to the work: ask first for interactive approval, or auto-approve when you want Gemini CLI to keep moving.
+
+![CalmUI permission mode dropdown](docs/permission-modes.png)
+
+| v1.5 toolbar | v1.6 calm default |
+|---|---|
+| ![Earlier CalmUI toolbar-heavy layout](docs/before-redesign.png) | ![CalmUI welcome screen with the calmer v1.6 default layout](docs/hero-welcome.png) |
 
 ## Requirements
 
