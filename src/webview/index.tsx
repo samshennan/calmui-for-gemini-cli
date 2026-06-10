@@ -2260,6 +2260,7 @@ function formatPermissionOptionLabel(option: PermissionOption | string | undefin
   if (key === 'proceed_once' || key === 'allow_once') return 'Allow once';
   if (key === 'proceed_always' || key === 'allow_always') return 'Always allow';
   if (key === 'cancel' || key === 'reject_once' || key === 'deny') return 'Deny';
+  if (key === 'reject_always') return 'Always deny';
   return rawLabel || optionId || 'Choose';
 }
 
