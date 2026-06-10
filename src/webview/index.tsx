@@ -17,6 +17,7 @@ import {
   type McpInspectorReport,
   type McpServerAction,
   type ParsedSources,
+  type PermissionOption,
   type PermissionMode,
   type SearchMode,
   type SlashCommand,
@@ -1005,7 +1006,7 @@ function App() {
                       )}
                       {message.permission.resolved ? (
                         <div className="permission-resolved-label">
-                          Responded: {message.permission.options.find(o => o.optionId === message.permission!.resolved)?.label ?? message.permission.resolved}
+                          Responded: {formatPermissionOptionLabel(message.permission.options.find(o => o.optionId === message.permission!.resolved) ?? message.permission.resolved)}
                         </div>
                       ) : (
                         <div className="permission-buttons">
@@ -1020,7 +1021,7 @@ function App() {
                                 optionId: opt.optionId,
                               } as WebviewMessage)}
                             >
-                              {opt.label}
+                              {formatPermissionOptionLabel(opt)}
                             </button>
                           ))}
                         </div>
@@ -2250,6 +2251,16 @@ function formatTokens(count: number): string {
   if (count < 1000) return String(count);
   if (count < 1_000_000) return `${(count / 1000).toFixed(count < 10_000 ? 1 : 0)}k`;
   return `${(count / 1_000_000).toFixed(2)}M`;
+}
+
+function formatPermissionOptionLabel(option: PermissionOption | string | undefined): string {
+  const optionId = typeof option === 'string' ? option : option?.optionId;
+  const rawLabel = typeof option === 'string' ? option : option?.label;
+  const key = (optionId || rawLabel || '').toLowerCase();
+  if (key === 'proceed_once' || key === 'allow_once') return 'Allow once';
+  if (key === 'proceed_always' || key === 'allow_always') return 'Always allow';
+  if (key === 'cancel' || key === 'reject_once' || key === 'deny') return 'Deny';
+  return rawLabel || optionId || 'Choose';
 }
 
 function buildUsageTooltip(
@@ -3765,12 +3776,13 @@ style.textContent = `
   }
 
   .message-warning {
-    padding: 4px 8px;
-    margin-bottom: 10px;
-    font-size: 0.85em;
-    color: var(--vscode-descriptionForeground);
+    padding: 12px 14px;
+    margin: 10px 0 12px;
+    font-size: 0.9em;
+    line-height: 1.45;
+    color: var(--vscode-foreground);
     border-left: 2px solid var(--vscode-editorWarning-foreground, var(--vscode-notificationsWarningIcon-foreground));
-    background: var(--vscode-input-background);
+    background: color-mix(in srgb, var(--vscode-editorWarning-foreground, var(--vscode-notificationsWarningIcon-foreground)) 10%, var(--vscode-input-background));
   }
 
   .message-warning .message-author {
@@ -4252,12 +4264,12 @@ style.textContent = `
   }
 
   .thinking-stall-hint {
-    padding: 8px 10px;
+    padding: 10px 12px;
     border-radius: 4px;
     border: 1px solid var(--vscode-inputValidation-warningBorder, var(--vscode-notificationsWarningIcon-foreground));
-    background: var(--vscode-inputValidation-warningBackground, color-mix(in srgb, var(--vscode-editorWarning-foreground, var(--vscode-notificationsWarningIcon-foreground)) 14%, transparent));
-    color: var(--vscode-editorWarning-foreground, var(--vscode-notificationsWarningIcon-foreground));
-    font-size: 0.85em;
+    background: color-mix(in srgb, var(--vscode-editorWarning-foreground, var(--vscode-notificationsWarningIcon-foreground)) 16%, var(--vscode-editor-background));
+    color: var(--vscode-foreground);
+    font-size: 0.9em;
     line-height: 1.4;
   }
 
@@ -4336,10 +4348,10 @@ style.textContent = `
   .compact-select {
     min-width: 0;
     max-width: 140px;
-    height: 24px;
+    height: 32px;
     padding: 0 22px 0 8px;
     font-size: 0.8em;
-    line-height: 24px;
+    line-height: 32px;
     color: var(--vscode-descriptionForeground);
     background: var(--vscode-input-background);
     border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
@@ -4359,8 +4371,8 @@ style.textContent = `
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 24px;
-    min-height: 24px;
+    height: 32px;
+    min-height: 32px;
     padding: 0 8px;
     font-size: 0.8em;
     line-height: 1;
@@ -4391,10 +4403,10 @@ style.textContent = `
     justify-content: center;
     gap: 6px;
     min-width: 72px;
-    min-height: 28px;
+    min-height: 32px;
     border: 1px solid var(--vscode-button-border, transparent);
     border-radius: 4px;
-    padding: 4px 12px;
+    padding: 0 12px;
     line-height: 1;
     color: var(--vscode-button-foreground);
     background: var(--vscode-button-background);
@@ -4425,8 +4437,8 @@ style.textContent = `
     align-items: center;
     gap: 5px;
     min-width: auto;
-    min-height: 24px;
-    height: 24px;
+    min-height: 32px;
+    height: 32px;
     padding: 0 6px;
     border: 0;
     border-radius: 4px;
@@ -4663,6 +4675,7 @@ style.textContent = `
   /* Permission cards */
   .message-permission {
     border-left: 3px solid var(--vscode-editorWarning-foreground, var(--vscode-notificationsWarningIcon-foreground));
+    padding-left: 12px;
   }
 
   .message-permission.permission-resolved {
@@ -4671,13 +4684,15 @@ style.textContent = `
   }
 
   .permission-card {
-    padding: 4px 0;
+    padding: 6px 0 2px;
   }
 
   .permission-tool-name {
     font-weight: 600;
     font-family: var(--vscode-editor-font-family);
-    margin-bottom: 4px;
+    margin: 6px 0 10px;
+    font-size: 1.05em;
+    line-height: 1.35;
   }
 
   .permission-args {
@@ -4695,13 +4710,14 @@ style.textContent = `
 
   .permission-buttons {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     flex-wrap: wrap;
-    margin-top: 4px;
+    margin-top: 6px;
   }
 
   .permission-btn {
-    padding: 4px 12px;
+    min-height: 34px;
+    padding: 0 14px;
     border: 1px solid var(--vscode-button-border, var(--vscode-panel-border));
     border-radius: 3px;
     background: var(--vscode-button-secondaryBackground, var(--vscode-input-background));
@@ -4740,7 +4756,7 @@ style.textContent = `
   .search-mode-pill {
     display: inline-flex;
     align-items: stretch;
-    height: 24px;
+    height: 32px;
     border: 1px solid var(--vscode-panel-border);
     border-radius: 999px;
     overflow: hidden;
@@ -4752,7 +4768,7 @@ style.textContent = `
     align-items: center;
     gap: 4px;
     min-width: 0;
-    padding: 0 10px;
+    padding: 0 12px;
     font-size: 0.78em;
     line-height: 1;
     color: var(--vscode-descriptionForeground);
