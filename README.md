@@ -39,7 +39,7 @@ This was originally built for internal Veles workflows, where non-terminal users
 | Environment | Status |
 |---|---|
 | VS Code | Supported target |
-| Antigravity IDE | Designed to install as a VSIX; needs latest manual QA |
+| Antigravity IDE | Tested manually (v1.6.5, June 2026) with Vertex AI auth — see the Antigravity notes in the FAQ |
 | Cursor | Likely compatible because it supports many VS Code extensions, but not tested yet |
 | Other VS Code-based IDEs | Possible if they support webview/sidebar VSIX extensions |
 | Gemini CLI with Google Cloud / Vertex / API key / enterprise access | Intended runtime |
@@ -81,6 +81,14 @@ Permission modes are explicit and close to the work: ask first for interactive a
 
 ![CalmUI permission mode dropdown](docs/permission-modes.png)
 
+The same question asked in the CalmUI sidebar and in the raw Gemini CLI terminal. Same engine underneath — one of them just doesn't look like a black scary box.
+
+![CalmUI chat panel and the Gemini CLI terminal answering the same question side by side](docs/calm-vs-terminal.png)
+
+| CalmUI chat | Gemini CLI in the terminal |
+|---|---|
+| ![A question and answer in the CalmUI chat panel](docs/calm-chat.png) | ![The same question answered in the Gemini CLI terminal](docs/terminal-response.png) |
+
 | v1.5 toolbar | v1.6 calm default |
 |---|---|
 | ![Earlier CalmUI toolbar-heavy layout](docs/before-redesign.png) | ![CalmUI welcome screen with the calmer v1.6 default layout](docs/hero-welcome.png) |
@@ -103,10 +111,14 @@ npm ci
 npm run package
 ```
 
-Then install the generated file:
+Then install the generated file (the filename carries the current version from `package.json`):
 
 ```bash
-code --install-extension gemini-cli-calmui-1.6.1.vsix
+# VS Code
+code --install-extension gemini-cli-calmui-<version>.vsix
+
+# Antigravity IDE
+antigravity-ide --install-extension gemini-cli-calmui-<version>.vsix
 ```
 
 Or install manually:
@@ -114,9 +126,11 @@ Or install manually:
 1. Open Extensions in VS Code or a compatible IDE.
 2. Open the `...` menu.
 3. Choose **Install from VSIX...**
-4. Select `gemini-cli-calmui-1.6.1.vsix`.
-5. Reload the window.
+4. Select the `gemini-cli-calmui-<version>.vsix` you built.
+5. Reload the window (in Antigravity, fully quit and relaunch instead — see FAQ).
 6. Open the CalmUI activity bar panel.
+
+After installing, run **CalmUI: Run Diagnostics** from the command palette. It checks the extension version, Gemini CLI path, ACP bundle, auth mode, ADC, and project, and tells you exactly which step needs attention.
 
 ## Settings
 
@@ -128,6 +142,62 @@ Or install manually:
 | `calmui.includeDirectories` | `[]` | Extra folders Gemini CLI may read. |
 | `calmui.useAcp` | `true` | Use Gemini CLI ACP mode for sessions, permissions, images, and recovery. |
 | `calmui.attachMcpServersToAcp` | `false` | Experimental. Attach configured MCP servers to ACP sessions. Leave off if Gemini session creation hangs. |
+
+## FAQ
+
+### Does CalmUI authenticate separately from Gemini CLI?
+
+No. CalmUI does not have its own auth flow. It simply launches your local Gemini CLI and inherits whatever authentication already works on that machine.
+
+### If Gemini CLI works in my terminal, should CalmUI work too?
+
+Usually yes. If Gemini CLI already works from your terminal with Google Cloud, Vertex AI, API keys, or enterprise access, CalmUI should usually work too because it is only a UI wrapper around that same local CLI install.
+
+### Does CalmUI require the same Google Cloud project ID for every user?
+
+No. Each user can use their own assigned Google Cloud / Vertex AI project.
+
+CalmUI does not hardcode one shared project ID. It follows the auth and project context that the local Gemini CLI process is already using on that machine.
+
+### What does each user need for Vertex AI mode?
+
+Each user needs:
+
+- Gemini CLI installed and working locally
+- the correct Google account logged into `gcloud`
+- `gcloud auth application-default login` completed on that machine
+- access to their assigned Google Cloud project
+- either the correct default `gcloud` project selected, or `calmui.googleCloudProject` set explicitly
+
+### Can the extension accidentally use the wrong project?
+
+Yes, if the local machine is pointed at the wrong project, CalmUI will inherit that too, because it uses the local Gemini CLI environment rather than its own project picker.
+
+### Can I connect Antigravity IDE itself to my GCP project the same way as Gemini CLI?
+
+Not in the same self-serve way, based on the current public Antigravity docs and UI. Gemini CLI can be pointed at Vertex AI locally via `gcloud` + ADC. Antigravity's public docs describe GCP-backed usage as an enterprise / organization setup, not as the same per-user local project toggle exposed in the IDE UI.
+
+### Diagnostics say gcloud is not found, but it works in my terminal. Why?
+
+Almost always a stale process environment. Windows (and macOS) processes snapshot `PATH` at launch, so if you installed gcloud — or the installer added it to `PATH` — while your editor was already running, the extension host cannot see it. **Fully quit and relaunch the IDE** (File → Exit, not just Reload Window; a reloaded window inherits the environment from the still-running main process). This also fixes other extensions' "gcloud not found" popups at the same time.
+
+### Diagnostics fail on "Vertex ADC" even though `gcloud auth application-default print-access-token` works in my terminal
+
+Update to v1.6.5 or later. Earlier versions gave the ADC check a 7-second budget, but minting an ADC token needs a network round trip on top of gcloud's Python startup and routinely takes 8–10 seconds on Windows — so the check timed out even with perfectly valid credentials. v1.6.5 also fixed Windows gcloud path resolution to only use install locations that actually exist on disk.
+
+### I installed a new VSIX in Antigravity but the old version still loads
+
+Antigravity's extension management can claim success while leaving stale metadata behind. Diagnostics print the running version (`PASS Extension: version=…`), so you can verify what is actually loaded. If it is stale:
+
+1. Fully quit all Antigravity windows.
+2. Check `~/.antigravity-ide/extensions/extensions.json` for an entry pointing at the old version, and remove it along with the old `veles.gemini-cli-calmui-<old>` folder.
+3. Reinstall the new VSIX and relaunch.
+
+Bumping the version number in `package.json` before packaging also forces a clean pickup.
+
+### Chat times out with "Timed out waiting for session/new response"
+
+First disable `calmui.attachMcpServersToAcp` if you enabled it — attaching MCP servers to ACP sessions is experimental and is the most common cause of session-creation hangs. Then run diagnostics: a failing auth check (ADC, project) can also stall session creation.
 
 ## QA checklist
 
@@ -172,7 +242,7 @@ scripts/                           Verification and Gemini wrapper scripts
 
 ## Current status
 
-CalmUI is pre-release software. It is ready for local VSIX QA, not marketplace publishing. The next release-prep step is hands-on testing in VS Code and Antigravity IDE with a real Gemini CLI account.
+CalmUI is pre-release software distributed as a locally built VSIX, not yet marketplace-published. v1.6.5 has been QA'd hands-on in Antigravity IDE on Windows with Vertex AI auth: 10/10 diagnostics, streamed chat with tool calls, and permission cards all verified. An Antigravity CLI (`agy`) adapter is planned for when Google exposes a programmatic interface comparable to `gemini --acp`.
 
 ## License
 
