@@ -127,7 +127,9 @@ export async function runDiagnostics(
   });
 
   if (useVertexAI) {
-    const adc = runGcloudCommandSync(['auth', 'application-default', 'print-access-token'], 7000);
+    // Minting an ADC access token needs a network round trip on top of the
+    // Python-based gcloud.cmd startup; on Windows this routinely takes 8-10s.
+    const adc = runGcloudCommandSync(['auth', 'application-default', 'print-access-token'], 20000);
     checks.push({
       id: 'vertex-adc',
       label: 'Vertex ADC',
@@ -139,7 +141,7 @@ export async function runDiagnostics(
       action: adc.ok ? undefined : 'refreshGcloud',
     });
 
-    const project = runGcloudCommandSync(['config', 'get-value', 'project'], 5000);
+    const project = runGcloudCommandSync(['config', 'get-value', 'project'], 10000);
     const projectValue = project.stdout
       .split(/\r?\n/)
       .map(line => line.trim())

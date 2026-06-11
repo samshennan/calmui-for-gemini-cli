@@ -394,7 +394,11 @@ export function buildComposerNotice({
     return { level: 'error', text: chatState.errorMessage };
   }
   if (chatState.gcloud.errorMessage && !chatState.session?.resolvedModel) {
-    return { level: 'warning', text: 'Google Cloud credentials need attention.', action: 'Click "Not signed in" above to refresh.' };
+    return {
+      level: 'warning',
+      text: 'Google Cloud credentials need attention.',
+      action: 'Run Diagnostics, or refresh Google Cloud status from the diagnostics panel.',
+    };
   }
   return null;
 }

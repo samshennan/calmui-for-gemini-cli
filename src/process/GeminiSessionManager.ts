@@ -48,6 +48,7 @@ export class GeminiSessionManager implements vscode.Disposable {
   private readonly _process: GeminiProcessAcp;
   private readonly _sessions = new Map<string, SessionHandle>();
   private _activeSessionId: string | null = null;
+  private _hasObservedRunningProcess = false;
   private _recoveryTimer: NodeJS.Timeout | null = null;
   private _heartbeatTimer: NodeJS.Timeout | null = null;
   private _crashTimestamps: number[] = [];
@@ -92,6 +93,7 @@ export class GeminiSessionManager implements vscode.Disposable {
 
   async createSession(cwd: string): Promise<SessionHandle> {
     const { sessionId, adapted } = await this._process.createSession(cwd);
+    this._hasObservedRunningProcess = true;
     this._outputChannel.appendLine(`[SESSION MGR] created session=${sessionId}`);
 
     const handle: SessionHandle = {
@@ -130,6 +132,7 @@ export class GeminiSessionManager implements vscode.Disposable {
 
   async loadSession(cwd: string, sessionId: string): Promise<SessionHandle> {
     const { adapted } = await this._process.loadSession(cwd, sessionId);
+    this._hasObservedRunningProcess = true;
     this._outputChannel.appendLine(`[SESSION MGR] loaded session=${sessionId}`);
 
     const handle: SessionHandle = {
@@ -244,6 +247,7 @@ export class GeminiSessionManager implements vscode.Disposable {
       this._recoveryTimer = null;
       void this._process.restart()
         .then(() => {
+          this._hasObservedRunningProcess = true;
           this._outputChannel.appendLine('[SESSION MGR] ACP process restarted');
           this._onHealthStateChange?.({ status: 'connected' });
           this._onRecoveryStateChange?.({ status: 'ready' });
@@ -269,9 +273,11 @@ export class GeminiSessionManager implements vscode.Disposable {
     this._heartbeatTimer = setInterval(() => {
       if (this._disposed) return;
       if (!this._process.isRunning()) {
+        if (!this._hasObservedRunningProcess) return;
         this._onHealthStateChange?.({ status: 'disconnected', message: 'Gemini ACP is not running.' });
         return;
       }
+      this._hasObservedRunningProcess = true;
       void this._process.ping()
         .then(() => this._onHealthStateChange?.({ status: 'connected' }))
         .catch((err) => this._onHealthStateChange?.({

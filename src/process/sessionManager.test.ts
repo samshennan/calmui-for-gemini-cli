@@ -167,6 +167,7 @@ describe('GeminiSessionManager', () => {
   it('reports disconnected health when the ACP process is not running', async () => {
     vi.useFakeTimers();
     const health = vi.fn();
+    (manager as any)._hasObservedRunningProcess = true;
     (manager.process as any).isRunning.mockReturnValue(false);
     manager.setHealthStateCallback(health);
 
@@ -177,6 +178,18 @@ describe('GeminiSessionManager', () => {
       status: 'disconnected',
       message: 'Gemini ACP is not running.',
     });
+  });
+
+  it('does not report disconnected health before ACP has ever been started', async () => {
+    vi.useFakeTimers();
+    const health = vi.fn();
+    (manager.process as any).isRunning.mockReturnValue(false);
+    manager.setHealthStateCallback(health);
+
+    await vi.advanceTimersByTimeAsync(30000);
+
+    expect(manager.process.ping).not.toHaveBeenCalled();
+    expect(health).not.toHaveBeenCalled();
   });
 
   it('reports error health when heartbeat ping fails', async () => {

@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from 'child_process';
+import * as fs from 'fs';
 import * as path from 'path';
 
 export interface GcloudCommandResult {
@@ -93,7 +94,7 @@ export function runGcloudCommandSync(
   }
 
   if (process.platform === 'win32') {
-    const result = spawnSync('cmd.exe', ['/d', '/s', '/c', buildWindowsCommand(command, args)], {
+    const result = spawnSync('cmd.exe', buildWindowsSpawnArgs(command, args), {
       encoding: 'utf-8',
       windowsHide: true,
       timeout,
@@ -125,10 +126,10 @@ export function resolveGcloudCommand(env: NodeJS.ProcessEnv): string | null {
   if (process.platform !== 'win32') return 'gcloud';
 
   const discovered = findGcloudOnWindowsPath();
-  if (discovered) return discovered;
+  if (discovered) return normalizeWindowsGcloudPath(discovered);
 
   for (const candidate of getWindowsGcloudCandidates(env)) {
-    if (candidate) {
+    if (candidate && fs.existsSync(candidate)) {
       return candidate;
     }
   }
@@ -145,6 +146,7 @@ export function getWindowsGcloudCandidates(env: NodeJS.ProcessEnv): string[] {
   return [
     userProfile ? path.join(userProfile, '.local', 'bin', 'gcloud.cmd') : '',
     localAppData ? path.join(localAppData, 'Google', 'Cloud SDK', 'google-cloud-sdk', 'bin', 'gcloud.cmd') : '',
+    localAppData ? path.join(localAppData, 'Google', 'CloudSDK', 'google-cloud-sdk', 'bin', 'gcloud.cmd') : '',
     programFiles ? path.join(programFiles, 'Google', 'Cloud SDK', 'google-cloud-sdk', 'bin', 'gcloud.cmd') : '',
     programFilesX86 ? path.join(programFilesX86, 'Google', 'Cloud SDK', 'google-cloud-sdk', 'bin', 'gcloud.cmd') : '',
   ].filter(Boolean);
@@ -167,13 +169,20 @@ function findGcloudOnWindowsPath(): string | null {
   return null;
 }
 
+function normalizeWindowsGcloudPath(value: string): string {
+  const trimmed = value.trim();
+  if (/\.(cmd|exe|bat|ps1)$/i.test(trimmed)) return trimmed;
+  const cmdPath = `${trimmed}.cmd`;
+  return fs.existsSync(cmdPath) ? cmdPath : trimmed;
+}
+
 function runWindowsCommand(
   command: string,
   args: string[],
   timeout: number,
 ): Promise<GcloudCommandResult> {
   return new Promise((resolve) => {
-    const child = spawn('cmd.exe', ['/d', '/s', '/c', buildWindowsCommand(command, args)], {
+    const child = spawn('cmd.exe', buildWindowsSpawnArgs(command, args), {
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
     });
@@ -221,11 +230,6 @@ function runWindowsCommand(
   });
 }
 
-function buildWindowsCommand(command: string, args: string[]): string {
-  return `"${escapeWindowsArgument(command)}" ${args.map(escapeWindowsArgument).join(' ')}`.trim();
-}
-
-function escapeWindowsArgument(value: string): string {
-  const escaped = value.replace(/"/g, '""');
-  return `"${escaped}"`;
+export function buildWindowsSpawnArgs(command: string, args: string[]): string[] {
+  return ['/d', '/s', '/c', command, ...args];
 }

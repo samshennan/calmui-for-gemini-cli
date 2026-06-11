@@ -2405,8 +2405,8 @@ function isSafeCheckpointTag(tag: string): boolean {
 async function readGcloudStatusAsync(): Promise<GcloudStatus> {
   const useVertexAI = vscode.workspace.getConfiguration('calmui').get<boolean>('useVertexAI', true);
 
-  const runGcloud = async (args: string[]): Promise<{ value: string | null; stderr: string }> => {
-    const result = await runGcloudCommand(args, 5000);
+  const runGcloud = async (args: string[], timeout = 10000): Promise<{ value: string | null; stderr: string }> => {
+    const result = await runGcloudCommand(args, timeout);
     const lines = result.stdout.split('\n').map(l => l.trim())
       .filter(l => l && !l.startsWith('Your active configuration is:') && l !== '(unset)');
     return {
@@ -2420,7 +2420,9 @@ async function readGcloudStatusAsync(): Promise<GcloudStatus> {
   if (useVertexAI) {
     // Quick ADC check — if this succeeds, auth is working regardless of
     // what gcloud config says.
-    const adcResult = await runGcloud(['auth', 'application-default', 'print-access-token']);
+    // Token minting needs a network round trip on top of gcloud.cmd's Python
+    // startup; 8-10s is normal on Windows, so give it real headroom.
+    const adcResult = await runGcloud(['auth', 'application-default', 'print-access-token'], 20000);
     const projectResult = await runGcloud(['config', 'get-value', 'project']);
 
     if (adcResult.value) {
