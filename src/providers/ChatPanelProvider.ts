@@ -1,6 +1,7 @@
 import * as crypto from 'crypto';
 
 import * as vscode from 'vscode';
+import { runGcloudCommand } from '../gcloud';
 import { discoverGeminiExtensions } from '../extensionManager';
 import { createInitProposal, discoverMemoryState, getProjectMemoryPath } from '../memory/memoryStudio';
 import { discoverGeminiMcpServers, getMcpServerSignature, inspectMcpServers, mergeMcpServers } from '../mcpInspector';
@@ -2405,17 +2406,13 @@ async function readGcloudStatusAsync(): Promise<GcloudStatus> {
   const useVertexAI = vscode.workspace.getConfiguration('calmui').get<boolean>('useVertexAI', true);
 
   const runGcloud = async (args: string[]): Promise<{ value: string | null; stderr: string }> => {
-    try {
-      const { stdout, stderr } = await execAsync(
-        `gcloud ${args.join(' ')}`,
-        { windowsHide: true, timeout: 5000, shell: process.platform === 'win32' ? 'cmd.exe' : undefined }
-      );
-      const lines = stdout.split('\n').map(l => l.trim())
-        .filter(l => l && !l.startsWith('Your active configuration is:') && l !== '(unset)');
-      return { value: lines[0] || null, stderr: stderr || '' };
-    } catch (e: any) {
-      return { value: null, stderr: e.stderr || e.message || String(e) };
-    }
+    const result = await runGcloudCommand(args, 5000);
+    const lines = result.stdout.split('\n').map(l => l.trim())
+      .filter(l => l && !l.startsWith('Your active configuration is:') && l !== '(unset)');
+    return {
+      value: lines[0] || null,
+      stderr: [result.error, result.stderr].filter(Boolean).join(' ').trim(),
+    };
   };
 
   // When using Vertex AI, Gemini CLI authenticates via application default

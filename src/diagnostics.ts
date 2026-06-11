@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { runGcloudCommandSync } from './gcloud';
 import type {
   DiagnosticsAction,
   DiagnosticsCheck,
@@ -126,7 +127,7 @@ export async function runDiagnostics(
   });
 
   if (useVertexAI) {
-    const adc = runTool('gcloud', ['auth', 'application-default', 'print-access-token'], 7000);
+    const adc = runGcloudCommandSync(['auth', 'application-default', 'print-access-token'], 7000);
     checks.push({
       id: 'vertex-adc',
       label: 'Vertex ADC',
@@ -138,7 +139,7 @@ export async function runDiagnostics(
       action: adc.ok ? undefined : 'refreshGcloud',
     });
 
-    const project = runTool('gcloud', ['config', 'get-value', 'project'], 5000);
+    const project = runGcloudCommandSync(['config', 'get-value', 'project'], 5000);
     const projectValue = project.stdout
       .split(/\r?\n/)
       .map(line => line.trim())
