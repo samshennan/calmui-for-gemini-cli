@@ -580,6 +580,11 @@ function getGeminiSpawnEnv(): NodeJS.ProcessEnv {
     env.GEMINI_API_KEY = '';
     env.GOOGLE_API_KEY = '';
     if (gcpProject) env.GOOGLE_CLOUD_PROJECT = gcpProject;
+  } else {
+    // API-key mode: clear any inherited GOOGLE_GENAI_USE_VERTEXAI=true so it does
+    // not silently force the Vertex auth path. Empty string (not delete) so the
+    // gemini dotenv loader does not re-fill it from ~/.gemini/.env.
+    env.GOOGLE_GENAI_USE_VERTEXAI = '';
   }
   return env;
 }

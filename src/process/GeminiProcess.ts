@@ -64,6 +64,11 @@ export class GeminiProcess implements GeminiTransport {
       spawnEnv.GEMINI_API_KEY = '';
       spawnEnv.GOOGLE_API_KEY = '';
       if (gcpProject) spawnEnv.GOOGLE_CLOUD_PROJECT = gcpProject;
+    } else {
+      // API-key mode: an inherited GOOGLE_GENAI_USE_VERTEXAI=true would otherwise
+      // survive via `...process.env` and silently force the Vertex auth path.
+      // Empty string (not delete) so the gemini dotenv loader does not re-fill it.
+      spawnEnv.GOOGLE_GENAI_USE_VERTEXAI = '';
     }
     this._outputChannel.appendLine(
       `[SPAWN] vertex=${useVertexAI} project=${spawnEnv.GOOGLE_CLOUD_PROJECT || '(inherited/unset)'} ` +
