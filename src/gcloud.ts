@@ -192,7 +192,14 @@ function runWindowsCommand(
     const timer = setTimeout(() => {
       if (settled) return;
       settled = true;
-      child.kill();
+      // child.kill() only reaps the cmd.exe wrapper, orphaning the gcloud.cmd
+      // -> python subtree it spawned. Tree-kill by pid so the whole process
+      // group is terminated (same pattern as the ACP process cleanup).
+      if (child.pid !== undefined) {
+        spawnSync('taskkill', ['/pid', String(child.pid), '/f', '/t'], { windowsHide: true });
+      } else {
+        child.kill();
+      }
       resolve({
         ok: false,
         status: null,
