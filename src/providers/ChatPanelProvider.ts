@@ -607,13 +607,25 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
    *   2. Any `kind: 'pdf'` chip when `getPromptCapabilities().embeddedContext`
    *      is not advertised → reject (this Gemini CLI version cannot accept it).
    */
-  private _validateAttachmentsForDispatch(chips: AttachmentChip[]): string | null {
+  private async _validateAttachmentsForDispatch(chips: AttachmentChip[]): Promise<string | null> {
     const unsupported = chips.find((c): c is Extract<AttachmentChip, { kind: 'unsupported' }> => c.kind === 'unsupported');
     if (unsupported) {
       return `Cannot send: ${unsupported.name} is not supported by Gemini.`;
     }
     const hasPdf = chips.some((c) => c.kind === 'pdf');
     if (hasPdf) {
+      // promptCapabilities are only known after the ACP initialize handshake.
+      // On a fresh panel the session has not started yet, so caps would read
+      // null and a supported PDF would be wrongly rejected. Ensure the session
+      // is started first (PDFs require ACP mode regardless) before reading caps.
+      if (this._isAcpMode() && this._sessionManager && !this._currentSessionId) {
+        try {
+          await this._ensureAcpSession();
+        } catch {
+          // Leave caps null; the connection gate in the caller surfaces the
+          // real "not connected" state.
+        }
+      }
       const caps = this._sessionManager?.process.getPromptCapabilities() ?? null;
       if (caps?.embeddedContext !== true) {
         return 'This Gemini CLI version does not advertise embeddedContext support; PDF cannot be sent.';
@@ -633,7 +645,7 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
     if (!prompt && chips.length === 0) return;
 
     // Phase 39 W2: pre-dispatch gates (unsupported chip + PDF capability).
-    const gateError = this._validateAttachmentsForDispatch(chips);
+    const gateError = await this._validateAttachmentsForDispatch(chips);
     if (gateError) {
       this._postMessage({ type: 'error', message: gateError });
       return;
@@ -716,7 +728,7 @@ export class ChatPanelProvider implements vscode.WebviewViewProvider {
     if (this._state.status === 'receiving') return;
 
     // Phase 39 W2: pre-dispatch gates (unsupported chip + PDF capability).
-    const gateError = this._validateAttachmentsForDispatch(chips);
+    const gateError = await this._validateAttachmentsForDispatch(chips);
     if (gateError) {
       this._postMessage({ type: 'error', message: gateError });
       return;
