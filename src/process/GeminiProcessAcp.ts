@@ -306,30 +306,42 @@ export class GeminiProcessAcp implements GeminiTransport {
       this._onProcessExit?.({ code, hadActivePrompt, intentional });
     });
 
-    const initResult = await this._request('initialize', {
-      protocolVersion: 1,
-      clientInfo: { name: 'gemini-cli-calmui', version: '1.5.0' },
-      capabilities: {},
-    });
-    for (const adapted of adaptAcpInitializeResult(initResult)) {
-      this._emitAdapted(adapted);
-    }
+    // The initialize handshake must complete before this process is considered
+    // ready. If it times out or errors, tear the process down and clear `_proc`
+    // so a later `_ensureStarted()` does not treat a dead/hung process as live
+    // (which would silently drop or misdirect every subsequent request).
+    try {
+      const initResult = await this._request('initialize', {
+        protocolVersion: 1,
+        clientInfo: { name: 'gemini-cli-calmui', version: '1.5.0' },
+        capabilities: {},
+      });
+      for (const adapted of adaptAcpInitializeResult(initResult)) {
+        this._emitAdapted(adapted);
+      }
 
-    // Phase 39 W0: persist `agentCapabilities.promptCapabilities` from the
-    // initialize response. Older Gemini CLI versions may not include this
-    // field; coerce missing/non-object payloads to `null` and never throw.
-    // RESEARCH.md §2 D-09 + W0 PLAN Risk #1.
-    const caps = (initResult as { agentCapabilities?: { promptCapabilities?: unknown } } | null)
-      ?.agentCapabilities?.promptCapabilities;
-    if (caps && typeof caps === 'object') {
-      const c = caps as Record<string, unknown>;
-      this._promptCapabilities = {
-        image: Boolean(c.image),
-        audio: Boolean(c.audio),
-        embeddedContext: Boolean(c.embeddedContext),
-      };
-    } else {
-      this._promptCapabilities = null;
+      // Phase 39 W0: persist `agentCapabilities.promptCapabilities` from the
+      // initialize response. Older Gemini CLI versions may not include this
+      // field; coerce missing/non-object payloads to `null` and never throw.
+      // RESEARCH.md §2 D-09 + W0 PLAN Risk #1.
+      const caps = (initResult as { agentCapabilities?: { promptCapabilities?: unknown } } | null)
+        ?.agentCapabilities?.promptCapabilities;
+      if (caps && typeof caps === 'object') {
+        const c = caps as Record<string, unknown>;
+        this._promptCapabilities = {
+          image: Boolean(c.image),
+          audio: Boolean(c.audio),
+          embeddedContext: Boolean(c.embeddedContext),
+        };
+      } else {
+        this._promptCapabilities = null;
+      }
+    } catch (err) {
+      // `_terminateProcess` rejects pending requests, tree-kills the child, and
+      // resets `_proc`/`_active`/`_promptInFlight`. Guard on identity in case the
+      // process already exited and the exit handler nulled `_proc`.
+      if (this._proc === proc) this._terminateProcess();
+      throw err;
     }
   }
 
