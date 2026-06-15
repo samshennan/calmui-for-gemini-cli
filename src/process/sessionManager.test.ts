@@ -234,6 +234,25 @@ describe('GeminiSessionManager', () => {
     });
   });
 
+  it('counts a failed restart as a single crash attempt', async () => {
+    vi.useFakeTimers();
+    const recovery = vi.fn();
+    manager.setRecoveryStateCallback(recovery);
+    (manager.process as any).restart.mockRejectedValueOnce(new Error('spawn failed'));
+
+    (manager.process as any)._triggerExit();   // crash 1 -> schedule attempt 1
+    await vi.advanceTimersByTimeAsync(1000);    // restart runs, rejects -> reschedule
+
+    // One exit + one failed restart = 2 crashes, still below the breaker (3).
+    // The previous double-count (catch + _scheduleRestart both recording) would
+    // have logged a third timestamp here and tripped the breaker to 'failed'.
+    expect(recovery).toHaveBeenLastCalledWith({
+      status: 'reconnecting',
+      attempt: 2,
+      hadActivePrompt: false,
+    });
+  });
+
   it('dispose clears sessions and disposes the process', async () => {
     await manager.createSession('/workspace');
     manager.dispose();

@@ -254,7 +254,9 @@ export class GeminiSessionManager implements vscode.Disposable {
         })
         .catch((err) => {
           this._outputChannel.appendLine(`[SESSION MGR] restart failed: ${err instanceof Error ? err.message : String(err)}`);
-          this._crashTimestamps.push(Date.now());
+          // Do not record the failure here: _scheduleRestart() appends its own
+          // timestamp. Pushing one here too double-counts the attempt against
+          // the crash window, tripping the circuit breaker and inflating backoff.
           this._scheduleRestart(hadActivePrompt);
         });
     }, restartDelay);
