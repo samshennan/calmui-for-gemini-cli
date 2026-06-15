@@ -2415,7 +2415,16 @@ function isSafeCheckpointTag(tag: string): boolean {
 }
 
 async function readGcloudStatusAsync(): Promise<GcloudStatus> {
-  const useVertexAI = vscode.workspace.getConfiguration('calmui').get<boolean>('useVertexAI', true);
+  const config = vscode.workspace.getConfiguration('calmui');
+  const useVertexAI = config.get<boolean>('useVertexAI', true);
+
+  // Resolve the project the way the spawn env does (GeminiProcess/getGeminiSpawnEnv):
+  // the calmui.googleCloudProject setting wins, then an inherited GOOGLE_CLOUD_PROJECT,
+  // then whatever gcloud config reports. Display the same value Gemini will actually use.
+  const configuredProject =
+    config.get<string>('googleCloudProject', '').trim()
+    || (process.env.GOOGLE_CLOUD_PROJECT ?? '').trim()
+    || null;
 
   const runGcloud = async (args: string[], timeout = 10000): Promise<{ value: string | null; stderr: string }> => {
     const result = await runGcloudCommand(args, timeout);
@@ -2442,7 +2451,7 @@ async function readGcloudStatusAsync(): Promise<GcloudStatus> {
       const accountResult = await runGcloud(['config', 'get-value', 'account']);
       return {
         account: accountResult.value || 'Vertex AI (ADC)',
-        project: projectResult.value,
+        project: configuredProject ?? projectResult.value,
       };
     }
 
@@ -2461,7 +2470,7 @@ async function readGcloudStatusAsync(): Promise<GcloudStatus> {
   ]);
 
   const account = accountResult.value;
-  const project = projectResult.value;
+  const project = configuredProject ?? projectResult.value;
 
   if (!account) {
     return { account: null, project: null, errorMessage: formatGcloudProbeError(accountResult.stderr) };
