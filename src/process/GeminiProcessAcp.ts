@@ -425,24 +425,28 @@ export class GeminiProcessAcp implements GeminiTransport {
     const permissionMode = this._active?.permissionMode ?? 'ask';
 
     if (permissionMode === 'yolo') {
-      // Auto-accept in yolo mode
+      // Auto-accept in yolo mode, but only when an explicit `allow_once` option is
+      // offered. If it is absent, fall through to the UI rather than silently
+      // dropping the request or auto-granting something the user never saw.
       const optionId = selectAcpPermissionOption(msg.params, 'yolo');
-      if (!optionId) return;
-      this._emitAdapted({
-        type: 'tool_use',
-        name: readNestedString(msg.params, ['toolCall', 'title']) ?? 'permission request',
-      });
-      this._write({
-        jsonrpc: '2.0',
-        id: msg.id,
-        result: buildAcpSelectedPermissionResult(optionId),
-      });
-      return;
+      if (optionId) {
+        this._emitAdapted({
+          type: 'tool_use',
+          name: readNestedString(msg.params, ['toolCall', 'title']) ?? 'permission request',
+        });
+        this._write({
+          jsonrpc: '2.0',
+          id: msg.id,
+          result: buildAcpSelectedPermissionResult(optionId),
+        });
+        return;
+      }
     }
 
-    // Ask mode: emit permission request to UI for user decision
+    // Ask mode (or yolo with no safe auto-approve option): emit permission request
+    // to UI for user decision.
     const toolName = readNestedString(msg.params, ['toolCall', 'title']) ?? 'tool';
-    const toolArgs = readNestedString(msg.params, ['toolCall', 'input']);
+    const toolArgs = formatToolInput(readNestedValue(msg.params, ['toolCall', 'input']));
     const options: Array<{ optionId: string; label: string; kind?: string }> = [];
     const rawOptions = (msg.params as { options?: unknown })?.options;
     if (Array.isArray(rawOptions)) {
@@ -693,6 +697,31 @@ function readNestedString(value: unknown, keys: string[]): string | null {
     current = (current as Record<string, unknown>)[key];
   }
   return typeof current === 'string' && current.trim() ? current.trim() : null;
+}
+
+function readNestedValue(value: unknown, keys: string[]): unknown {
+  let current = value;
+  for (const key of keys) {
+    if (!current || typeof current !== 'object') return undefined;
+    current = (current as Record<string, unknown>)[key];
+  }
+  return current;
+}
+
+// Tool input may be a plain string or a structured object. Render objects as JSON
+// so the permission card never shows a blank description for a non-string payload.
+function formatToolInput(input: unknown): string | undefined {
+  if (typeof input === 'string') {
+    return input.trim() || undefined;
+  }
+  if (input && typeof input === 'object') {
+    try {
+      return JSON.stringify(input);
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
 }
 
 function formatError(err: unknown): string {

@@ -156,12 +156,10 @@ export function selectAcpPermissionOption(params: unknown, permissionMode: Permi
   ));
   if (matching) return matching.optionId;
 
-  const fallback = options.find((option): option is { optionId: string } => (
-    option !== null
-    && typeof option === 'object'
-    && typeof (option as { optionId?: unknown }).optionId === 'string'
-  ));
-  return fallback?.optionId ?? null;
+  // No fallback: never auto-select an arbitrary option. In yolo mode that could
+  // silently grant a persistent (`allow_always`) or opposite-intent permission the
+  // user never saw. Returning null lets the caller surface the request to the UI.
+  return null;
 }
 
 export function buildAcpSelectedPermissionResult(optionId: string): unknown {

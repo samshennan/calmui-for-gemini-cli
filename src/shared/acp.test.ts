@@ -194,6 +194,24 @@ describe('ACP adapters', () => {
     }, 'yolo')).toBe('proceed_once');
   });
 
+  it('returns null in yolo mode when no allow_once option is offered', () => {
+    // Must not fall back to a persistent allow_always grant the user never saw.
+    expect(selectAcpPermissionOption({
+      options: [
+        { optionId: 'proceed_always', kind: 'allow_always' },
+        { optionId: 'cancel', kind: 'reject_once' },
+      ],
+    }, 'yolo')).toBeNull();
+  });
+
+  it('returns null in ask mode when no reject_once option is offered', () => {
+    expect(selectAcpPermissionOption({
+      options: [
+        { optionId: 'proceed_once', kind: 'allow_once' },
+      ],
+    }, 'ask')).toBeNull();
+  });
+
   it('builds the nested permission result shape expected by Gemini CLI', () => {
     expect(buildAcpSelectedPermissionResult('proceed_once')).toEqual({
       outcome: { outcome: 'selected', optionId: 'proceed_once' },
