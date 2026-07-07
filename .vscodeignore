@@ -17,3 +17,6 @@ dist/**/*.map
 *.env
 *.vsix
 package-lock.json
+.planning/
+.github/
+Calm UI for Gemini CLI UI Screenshots/

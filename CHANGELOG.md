@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.6.6] - 2026-06-15
+
+### Security
+- Yolo (auto-approve) mode no longer falls back to an arbitrary permission option when the CLI offers no explicit "allow once" — it could silently grant a persistent "allow always" permission the user never saw. Such requests now surface the permission card for an explicit decision.
+- Permission cards render structured (object) tool arguments as JSON instead of showing a blank description, so you can see what a tool call will do before approving it.
+
+### Fixed
+- ACP process is torn down if the `initialize` handshake fails, instead of leaving a dead process that later requests were silently sent to.
+- API-key mode no longer inherits a stray `GOOGLE_GENAI_USE_VERTEXAI=true` from the environment and wrongly forcing the Vertex auth path.
+- Timed-out gcloud commands on Windows are tree-killed, so the `gcloud.cmd` → Python subprocess is no longer orphaned.
+- Failed ACP restarts are counted once (not twice), so the repeated-crash circuit breaker and backoff behave correctly.
+- PDF attachments are validated against CLI capabilities after the ACP session starts, so a supported PDF is no longer rejected as unsupported on the first message.
+- Status bar shows the Google Cloud project Gemini will actually use (`calmui.googleCloudProject` / `GOOGLE_CLOUD_PROJECT` before the gcloud-config value).
+
 ## [1.6.1] - 2026-06-10
 
 ### Fixed

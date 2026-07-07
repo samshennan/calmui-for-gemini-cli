@@ -6,7 +6,7 @@
     "url": "https://github.com/samshennan/calmui-for-gemini-cli.git"
   },
   "description": "Gemini CLI chat interface for VS Code",
-  "version": "1.6.5",
+  "version": "1.6.6",
   "publisher": "veles",
   "license": "MIT",
   "engines": {
